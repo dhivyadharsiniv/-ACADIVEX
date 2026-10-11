@@ -1,0 +1,321 @@
+// Prisma Schema for EduManage Student Management System
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum InstitutionStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
+enum SubscriptionPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model Institution {
+  id              String            @id @default(uuid())
+  code            String            @unique // e.g. "apex-tech", "camu-univ"
+  name            String
+  institutionType String?           @default("COLLEGE") // SCHOOL, COLLEGE, UNIVERSITY, POLYTECHNIC
+  portalName      String?
+  tagline         String?
+  accreditation   String?
+  email           String            @unique
+  phone           String?
+  address         String?
+  campusLocation  String?
+  director        String?
+  logoUrl         String?
+  primaryColor    String?           @default("#7C3AED")
+  secondaryColor  String?           @default("#06B6D4")
+  academicYear    String?           @default("2026 - 2027")
+  currentTerm     String?           @default("Even Semester (2026)")
+  status          InstitutionStatus @default(ACTIVE)
+  plan            SubscriptionPlan  @default(ENTERPRISE)
+  maxStudents     Int               @default(2000)
+  maxStaff        Int               @default(200)
+  subscriptionEnd DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  users           User[]
+  departments     Department[]
+  teachers        Teacher[]
+  students        Student[]
+  classes         Class[]
+  auditLogs       AuditLog[]
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum FeeStatus {
+  PAID
+  PENDING
+  OVERDUE
+  PARTIAL
+}
+
+enum ExamType {
+  MID_TERM
+  FINAL
+  UNIT_TEST
+  PRACTICAL
+  CAT_1
+  CAT_2
+  END_SEMESTER
+}
+
+model User {
+  id              String       @id @default(uuid())
+  username        String?      @unique
+  email           String       @unique
+  password        String
+  passwordHash    String?
+  role            Role         @default(STUDENT)
+  studentId       String?      @unique
+  teacherId       String?      @unique
+  institutionId   String?
+  institution     Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  avatar          String?
+  profileImageUrl String?
+  status          String       @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  student   Student?
+  teacher   Teacher?
+}
+
+model Department {
+  id            String       @id @default(uuid())
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  code          String
+  description   String?
+  teachers      Teacher[]
+  students      Student[]
+  classes       Class[]
+  subjects      Subject[]
+  createdAt     DateTime     @default(now())
+
+  @@unique([institutionId, code])
+}
+
+model Teacher {
+  id              String       @id @default(uuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionId   String?
+  institution     Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  employeeId      String       @unique
+  phone           String
+  qualification   String
+  specialization  String
+  designation     String?      @default("Assistant Professor")
+  dateOfBirth     DateTime?
+  dob             String?
+  gender          Gender       @default(OTHER)
+  nationality     String?      @default("Indian")
+  address         String?
+  linkedInUrl     String?
+  departmentId    String
+  department      Department   @relation(fields: [departmentId], references: [id])
+  classes         Class[]
+  subjects        Subject[]
+  attendances     Attendance[]
+  advisedStudents Student[]
+  avatar          String?
+  profileImageUrl String?
+  status          String       @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Class {
+  id            String       @id @default(uuid())
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String       // e.g., "B.Tech CSE - 4A"
+  grade         Int          // e.g., 4
+  section       String       // e.g., "A"
+  academicYear  String       // e.g., "2026-2027"
+  departmentId  String?
+  department    Department?  @relation(fields: [departmentId], references: [id])
+  teacherId     String?      // Class advisor
+  teacher       Teacher?     @relation(fields: [teacherId], references: [id])
+  students      Student[]
+  attendances   Attendance[]
+  exams         Exam[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Subject {
+  id           String      @id @default(uuid())
+  name         String
+  code         String      @unique
+  departmentId String
+  department   Department  @relation(fields: [departmentId], references: [id])
+  teacherId    String?
+  teacher      Teacher?    @relation(fields: [teacherId], references: [id])
+  grades       Grade[]
+  exams        Exam[]
+  createdAt    DateTime    @default(now())
+}
+
+model Student {
+  id              String       @id @default(uuid())
+  userId          String?      @unique
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionId   String?
+  institution     Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  rollNumber      String       @unique
+  registerNumber  String?      @unique
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime?
+  dob             String?
+  gender          Gender       @default(OTHER)
+  nationality     String?      @default("Indian")
+  community       String?      // e.g., General, OBC, SC, ST, etc.
+  fatherName      String?
+  fatherPhone     String?
+  motherName      String?
+  motherPhone     String?
+  parentName      String?
+  parentPhone     String?
+  email           String       @unique
+  phone           String
+  address         String?
+  linkedInUrl     String?
+  admissionDate   DateTime     @default(now())
+  year            Int?         @default(1)
+  semester        Int?         @default(1)
+  departmentId    String?
+  department      Department?  @relation(fields: [departmentId], references: [id])
+  courseId        String?
+  classId         String
+  class           Class        @relation(fields: [classId], references: [id])
+  teacherId       String?
+  teacher         Teacher?     @relation(fields: [teacherId], references: [id])
+  attendances     Attendance[]
+  grades          Grade[]
+  fees            Fee[]
+  avatar          String?
+  profileImageUrl String?
+  status          String       @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  date      DateTime         @default(now())
+  status    AttendanceStatus @default(PRESENT)
+  remarks   String?
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class            @relation(fields: [classId], references: [id])
+  markedById String?
+  markedBy  Teacher?         @relation(fields: [markedById], references: [id])
+  createdAt DateTime         @default(now())
+
+  @@unique([date, studentId])
+}
+
+model Exam {
+  id          String    @id @default(uuid())
+  title       String    // e.g. "Fall 2026 Mathematics Finals"
+  type        ExamType  @default(FINAL)
+  date        DateTime
+  maxMarks    Int       @default(100)
+  passMarks   Int       @default(40)
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id])
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+  grades      Grade[]
+  createdAt   DateTime  @default(now())
+}
+
+model Grade {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  marksObtained Float
+  letterGrade String   // A+, A, B, C, D, F
+  gpa         Float    // 4.0 scale
+  remarks     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([studentId, examId])
+}
+
+model Fee {
+  id          String    @id @default(uuid())
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeType     String    // Tuition, Examination, Transport, Library, Sports
+  amount      Float
+  paidAmount  Float     @default(0)
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      FeeStatus @default(PENDING)
+  receiptNumber String? @unique
+  paymentMethod String? // CASH, CARD, UPI, BANK_TRANSFER
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AuditLog {
+  id            String       @id @default(uuid())
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  userId        String?
+  userEmail     String?
+  userRole      String?
+  action        String       // e.g., "CREATE_STUDENT", "INSTITUTION_APPROVED", "LOGIN_SUCCESS"
+  resource      String       // e.g., "Student", "Teacher", "Institution"
+  resourceId    String?
+  details       String?      // JSON string of event payload or diff
+  ipAddress     String?
+  timestamp     DateTime     @default(now())
+}

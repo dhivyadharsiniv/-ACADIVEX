@@ -1,0 +1,36 @@
+{
+  "name": "edumanage-backend",
+  "version": "1.0.0",
+  "description": "EduManage Student Management System - Full Stack Node.js API with PostgreSQL & Prisma",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:studio": "prisma studio",
+    "seed": "node src/data/seedDatabase.js",
+    "db:clean": "node src/data/cleanDemoData.js"
+  },
+  "keywords": [
+    "education",
+    "student-management",
+    "school-erp",
+    "nodejs",
+    "express",
+    "postgresql",
+    "prisma"
+  ],
+  "author": "EduManage Core Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0"
+  }
+}
